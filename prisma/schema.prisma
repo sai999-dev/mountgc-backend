@@ -1,0 +1,241 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  user_id              Int       @id @default(autoincrement())
+  username             String    @unique
+  email                String    @unique
+  password             String
+  user_role            String    @default("student")
+  email_verify         Boolean   @default(false)
+  email_verified_at    DateTime?
+  verification_token   String?   @unique
+  token_expires_at     DateTime?
+  is_active            Boolean   @default(true)
+  created_at           DateTime  @default(now())
+  refresh_token        String?   @db.Text
+  last_login_at        DateTime?
+
+  device_sessions      DeviceSession[]
+  research_purchases   ResearchPaperPurchase[]
+  visa_purchases       VisaApplicationPurchase[]
+  transactions         Transaction[]
+
+  @@map("users")
+}
+
+model DeviceSession {
+  session_id           Int       @id @default(autoincrement())
+  user_id              Int
+  device_id            String    // Unique identifier for device
+  device_name          String?   // Browser + OS info
+  device_type          String?   // mobile, desktop, tablet
+  ip_address           String?
+  user_agent           String?   @db.Text
+  access_token         String    @db.Text
+  refresh_token        String    @db.Text
+  is_active            Boolean   @default(true)
+  login_at             DateTime  @default(now())
+  last_activity_at     DateTime  @default(now())
+  logout_at            DateTime?
+  
+  user                 User      @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  
+  @@index([user_id])
+  @@index([device_id])
+  @@index([is_active])
+  @@map("device_sessions")
+}
+
+
+model Booking {
+  booking_id      Int       @id @default(autoincrement())
+  name            String    // Person's name
+  email           String    // Person's email
+  phone           String?   // Optional phone number
+  category        String    // General, Visa Assistance, etc.
+  session_type    String    // General Counseling, Expert Counseling
+  timezone        String
+  booking_date    DateTime  // The date of the session
+  booking_time    String    // Time slot like "10:00 AM"
+  message         String?   @db.Text
+  status          String    @default("pending") // pending, confirmed, completed, cancelled
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+
+  @@map("bookings")
+}
+
+model timeslot {
+timeslot_id Int @id @default(autoincrement())
+time String
+timezone String @default("IST")
+is_active Boolean @default(true)
+created_at DateTime @default(now())
+updated_at DateTime @updatedAt
+
+@@map("timeslots")
+}
+
+model ResearchPaperConfig {
+  config_id        Int       @id @default(autoincrement())
+  currency         String    // INR, USD, EUR
+  co_authors       Int       // Number of co-authors (0-3)
+  actual_price     Float     // Original price
+  discounted_price Float     // Discounted price
+  discount_percent Float     @default(20.0) // Discount percentage
+  duration_weeks   String    @default("3-4 weeks") // Service duration
+  is_active        Boolean   @default(true)
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @updatedAt
+  
+  @@unique([currency, co_authors])
+  @@map("research_paper_configs")
+}
+
+model ResearchPaperPurchase {
+  purchase_id      Int       @id @default(autoincrement())
+  user_id          Int
+  name             String
+  email            String
+  phone            String?
+  currency         String    // INR, USD, EUR
+  co_authors       Int       // Number of co-authors selected
+  actual_amount    Float     // Original amount
+  discount_amount  Float     // Discount amount
+  final_amount     Float     // Final amount to pay
+  duration         String    // Service duration
+  payment_status   String    @default("pending") // pending, completed, failed, refunded
+  payment_id       String?   // Payment gateway transaction ID (deprecated - use transaction)
+  payment_method   String?   // Card, UPI, Net Banking, etc. (deprecated - use transaction)
+  research_group   Boolean   @default(false) // Whether user wants to join/create research group
+  notes            String?   @db.Text // Student notes
+  admin_notes      String?   @db.Text // Admin internal notes
+  case_status      String    @default("open") // open, closed
+  status           String    @default("initiated") // initiated, in_progress, completed, cancelled
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @updatedAt
+
+  user             User      @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([payment_status])
+  @@index([status])
+  @@index([case_status])
+  @@map("research_paper_purchases")
+}
+
+model Transaction {
+  transaction_id           Int       @id @default(autoincrement())
+  user_id                  Int
+
+  // Service details
+  service_type             String    // 'research_paper', 'visa_application', 'counseling', etc.
+  service_id               Int?      // ID of the specific service purchase (nullable for flexibility)
+
+  // Amount details
+  amount                   Float     // Final amount paid
+  currency                 String    // INR, USD, EUR, etc.
+
+  // Payment gateway details
+  payment_gateway          String    @default("stripe") // stripe, razorpay, paypal, etc.
+  payment_status           String    @default("pending") // pending, processing, completed, failed, refunded, cancelled
+  payment_method           String?   // card, bank_transfer, upi, etc.
+
+  // Stripe specific fields
+  stripe_session_id        String?   @unique // Stripe Checkout Session ID
+  stripe_payment_intent_id String?   @unique // Stripe Payment Intent ID
+  stripe_customer_id       String?   // Stripe Customer ID for future use
+  stripe_charge_id         String?   // Stripe Charge ID
+
+  // Transaction metadata
+  description              String?   @db.Text // Human readable description
+  metadata                 Json?     // Flexible JSON field for additional data
+
+  // Payment details
+  paid_at                  DateTime? // When payment was completed
+  refunded_at              DateTime? // When refund was processed
+  cancelled_at             DateTime? // When transaction was cancelled
+
+  // Error tracking
+  error_message            String?   @db.Text // Error message if payment failed
+  error_code               String?   // Error code from payment gateway
+
+  // Timestamps
+  created_at               DateTime  @default(now())
+  updated_at               DateTime  @updatedAt
+
+  // Relations
+  user                     User      @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([service_type])
+  @@index([service_id])
+  @@index([payment_status])
+  @@index([stripe_session_id])
+  @@index([stripe_payment_intent_id])
+  @@map("transactions")
+}
+
+model VisaApplicationConfig {
+  config_id        Int       @id @default(autoincrement())
+  currency         String    // INR, USD, EUR
+  dependents       Int       // Number of dependents (0-2)
+  mocks            Int       // Number of mock interviews (1-2)
+  actual_price     Float     // Original price
+  discounted_price Float     // Discounted price
+  discount_percent Float     @default(20.0) // Discount percentage
+  duration_months  String    @default("1-2 months") // Service duration
+  is_active        Boolean   @default(true)
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @updatedAt
+
+  @@unique([currency, dependents, mocks])
+  @@map("visa_application_configs")
+}
+
+model VisaApplicationPurchase {
+  purchase_id      Int       @id @default(autoincrement())
+  user_id          Int
+  name             String
+  email            String
+  phone            String?
+  country          String    // USA, Canada, UK
+  currency         String    // INR, USD, EUR
+  dependents       Int       // Number of dependents selected
+  mocks            Int       // Number of mock interviews
+  actual_amount    Float     // Original amount
+  discount_amount  Float     // Discount amount
+  final_amount     Float     // Final amount to pay (when Stripe is integrated)
+  amount_paid      Float     @default(0) // Amount paid (0 until Stripe integration)
+  duration         String    // Service duration
+  payment_status   String    @default("pending") // pending, completed, failed, refunded (for future Stripe integration)
+  visa_guarantee   Boolean   @default(true) // Visa guarantee included
+  notes            String?   @db.Text // Student notes
+  admin_notes      String?   @db.Text // Admin internal notes
+  case_status      String    @default("open") // open, closed
+  status           String    @default("initiated") // initiated, in_progress, completed, cancelled
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @updatedAt
+  order_id         String    @unique @default(uuid()) // Order reference for student/admin
+
+  user             User      @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([payment_status])
+  @@index([status])
+  @@index([case_status])
+  @@index([country])
+  @@map("visa_application_purchases")
+}
