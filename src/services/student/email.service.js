@@ -22,7 +22,7 @@ transporter.verify((error, success) => {
 
 // Send verification email
 const sendVerificationEmail = async (email, username, verificationToken) => {
-  const verificationUrl = `${process.env.FRONTEND_URL}/api/auth/verify-email?token=${verificationToken}`;
+  const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`;
 
   const mailOptions = {
     from: process.env.EMAIL_FROM,
