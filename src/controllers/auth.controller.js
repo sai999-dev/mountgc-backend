@@ -229,6 +229,8 @@ const login = async (req, res) => {
     }
 
     // Check if email is verified
+    // TEMPORARILY DISABLED FOR TESTING - Re-enable for production
+    /*
     if (!user.email_verify) {
       return res.status(403).json({
         success: false,
@@ -236,6 +238,8 @@ const login = async (req, res) => {
         code: 'EMAIL_NOT_VERIFIED'
       });
     }
+    */
+    console.log('⚠️ WARNING: Email verification check is DISABLED for testing');
 
     // Check if account is active
     if (!user.is_active) {
