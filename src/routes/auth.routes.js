@@ -18,6 +18,30 @@ const {
 } = require('../validators/auth.validator');
 const { authenticateToken, authenticateTokenForLogout } = require('../middleware/auth.middleware');
 
+// Test endpoint for email service
+router.get('/test-email', async (req, res) => {
+  try {
+    const { sendVerificationEmail } = require('../services/student/email.service');
+    const result = await sendVerificationEmail(
+      'test@example.com',
+      'TestUser',
+      'test-token-123'
+    );
+    res.json({
+      success: true,
+      message: 'Email test completed',
+      result,
+      resendConfigured: !!process.env.RESEND_API_KEY
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      resendConfigured: !!process.env.RESEND_API_KEY
+    });
+  }
+});
+
 // Public routes
 router.post('/signup', signupValidator, validate, signup);
 router.get('/verify-email', verifyEmail);
