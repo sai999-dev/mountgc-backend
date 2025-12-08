@@ -9,9 +9,11 @@ const PORT = process.env.PORT || 3000;
 // ✅ CORS Configuration
 app.use(cors({
   origin: [
-    'http://localhost:3000',  // Frontend for testing
-    'http://localhost:3001',  // Student frontend
-    'http://localhost:3002'   // Admin frontend
+    'http://localhost:3000',  // Local testing
+    'http://localhost:3001',  // Local student frontend
+    'http://localhost:3002',  // Local admin frontend
+    'https://mountgc-frontend.onrender.com',  // Production student frontend
+    'https://mountgc-adminfrontend.onrender.com'  // Production admin frontend
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
