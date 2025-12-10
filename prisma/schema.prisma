@@ -31,6 +31,7 @@ model User {
   research_purchases   ResearchPaperPurchase[]
   visa_purchases       VisaApplicationPurchase[]
   transactions         Transaction[]
+  user_agreements      UserAgreement[]
 
   @@map("users")
 }
@@ -238,4 +239,42 @@ model VisaApplicationPurchase {
   @@index([case_status])
   @@index([country])
   @@map("visa_application_purchases")
+}
+
+model TermsAndConditions {
+  terms_id         Int       @id @default(autoincrement())
+  service_type     String    // 'research_paper', 'visa_application'
+  title            String    // e.g., "Research Paper Service Agreement"
+  content          String    @db.Text // The actual terms & conditions text
+  version          Int       @default(1) // Version number
+  is_active        Boolean   @default(true) // Only one active version per service_type
+  created_by       String?   // Admin who created it
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @updatedAt
+
+  user_agreements  UserAgreement[]
+
+  @@index([service_type])
+  @@index([is_active])
+  @@map("terms_and_conditions")
+}
+
+model UserAgreement {
+  agreement_id     Int       @id @default(autoincrement())
+  user_id          Int
+  terms_id         Int       // Which terms version they agreed to
+  service_type     String    // 'research_paper', 'visa_application'
+  signed_name      String    // User's typed signature
+  ip_address       String?   // User's IP when signing
+  user_agent       String?   @db.Text // Browser/device info
+  agreed_at        DateTime  @default(now())
+
+  user             User      @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  terms            TermsAndConditions @relation(fields: [terms_id], references: [terms_id])
+
+  @@unique([user_id, service_type]) // User can only have one agreement per service type
+  @@index([user_id])
+  @@index([service_type])
+  @@index([terms_id])
+  @@map("user_agreements")
 }
