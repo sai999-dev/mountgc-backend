@@ -1,6 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const { authenticateToken, isAdmin } = require('../../middleware/auth.middleware');
 const {
   getAllTerms,
   getActiveTerms,
@@ -11,8 +10,7 @@ const {
   getAgreementStats
 } = require('../../controllers/admin/terms.controller');
 
-// All routes require admin authentication
-router.use(authenticateToken, isAdmin);
+// No need to apply authentication here - already applied in admin/index.js
 
 // Terms management
 router.get('/terms', getAllTerms);
