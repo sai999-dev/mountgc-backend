@@ -6,21 +6,25 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Starting database seeding...');
 
-  // Clear existing data (optional - remove this line if you want to keep existing data)
-  await prisma.user.deleteMany();
-  console.log('🗑️  Cleared existing users');
+  // Hash passwords
+  const adminPassword = await bcrypt.hash('admin123', 10);
+  const testPassword = await bcrypt.hash('postgress123', 10);
 
-  // Hash password - same for all test users for easy testing
-  const hashedPassword = await bcrypt.hash('postgress123', 10);
+  console.log('📝 Creating/updating users...');
 
-  console.log('📝 Creating users...');
-
-  // Create Admin user
-  const admin = await prisma.user.create({
-    data: {
+  // Create/Update Admin user (upsert - won't duplicate if exists)
+  const admin = await prisma.user.upsert({
+    where: { email: 'admin@mountgc.com' },
+    update: {
+      password: adminPassword,
+      email_verify: true,
+      email_verified_at: new Date(),
+      is_active: true
+    },
+    create: {
       username: 'admin',
-      email: 'admin@example.com',
-      password: hashedPassword,
+      email: 'admin@mountgc.com',
+      password: adminPassword,
       user_role: 'admin',
       email_verify: true,
       email_verified_at: new Date(),
@@ -28,12 +32,14 @@ async function main() {
     }
   });
 
-  // Create Teacher user
-  const teacher = await prisma.user.create({
-    data: {
+  // Create Teacher user (optional test user)
+  const teacher = await prisma.user.upsert({
+    where: { email: 'teacher@example.com' },
+    update: {},
+    create: {
       username: 'teacher1',
       email: 'teacher@example.com',
-      password: hashedPassword,
+      password: testPassword,
       user_role: 'teacher',
       email_verify: true,
       email_verified_at: new Date(),
@@ -41,12 +47,14 @@ async function main() {
     }
   });
 
-  // Create Student user
-  const student = await prisma.user.create({
-    data: {
+  // Create Student user (optional test user)
+  const student = await prisma.user.upsert({
+    where: { email: 'student@example.com' },
+    update: {},
+    create: {
       username: 'student1',
       email: 'student@example.com',
-      password: hashedPassword,
+      password: testPassword,
       user_role: 'student',
       email_verify: true,
       email_verified_at: new Date(),
@@ -54,25 +62,27 @@ async function main() {
     }
   });
 
-  // Create another student for testing
-  const student2 = await prisma.user.create({
-    data: {
+  // Create another student for testing (optional test user)
+  const student2 = await prisma.user.upsert({
+    where: { email: 'student2@example.com' },
+    update: {},
+    create: {
       username: 'student2',
       email: 'student2@example.com',
-      password: hashedPassword,
+      password: testPassword,
       user_role: 'student',
       email_verify: false,
       is_active: true
     }
   });
 
-  console.log('✅ Successfully created users:');
+  console.log('✅ Successfully created/updated users:');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('📌 ADMIN USER');
+  console.log('📌 ADMIN USER (PRODUCTION)');
   console.log(`   Email: ${admin.email}`);
   console.log(`   Username: ${admin.username}`);
   console.log(`   Role: ${admin.user_role}`);
-  console.log(`   Password: postgress123`);
+  console.log(`   Password: admin123`);
   console.log('');
   console.log('📌 TEACHER USER');
   console.log(`   Email: ${teacher.email}`);
