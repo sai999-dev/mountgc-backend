@@ -1,19 +1,18 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
 /**
  * Email service for visa application purchases
  */
 
-// Create transporter using Gmail configuration from .env
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: process.env.EMAIL_PORT,
-  secure: false, // true for 465, false for other ports
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD,
-  },
-});
+// Initialize Resend with API key
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+// Verify Resend is configured
+if (!process.env.RESEND_API_KEY) {
+  console.error('❌ RESEND_API_KEY not configured for visa application emails');
+} else {
+  console.log('✅ Resend email service ready for visa applications');
+}
 
 /**
  * Send purchase confirmation email to student
@@ -287,12 +286,22 @@ const sendPurchaseConfirmationEmail = async ({
       `,
     };
 
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`✅ Visa application confirmation email sent to ${studentEmail}: ${info.messageId}`);
+    const { data, error } = await resend.emails.send(mailOptions);
+
+    if (error) {
+      console.error('❌ Error sending visa application confirmation email:', error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+
+    console.log(`✅ Visa application confirmation email sent to ${studentEmail}`, data);
 
     return {
       success: true,
-      messageId: info.messageId,
+      messageId: data?.id,
+      data,
     };
   } catch (error) {
     console.error('❌ Error sending visa application confirmation email:', error);
@@ -438,10 +447,16 @@ const sendAdminNotificationEmail = async ({
       `,
     };
 
-    await transporter.sendMail(mailOptions);
-    console.log(`✅ Admin notification email sent for visa application purchase #${orderId}`);
+    const { data, error } = await resend.emails.send(mailOptions);
 
-    return { success: true };
+    if (error) {
+      console.error('❌ Error sending admin notification email:', error);
+      return { success: false, error: error.message };
+    }
+
+    console.log(`✅ Admin notification email sent for visa application purchase #${orderId}`, data);
+
+    return { success: true, data };
   } catch (error) {
     console.error('❌ Error sending admin notification email:', error);
     return { success: false, error: error.message };

@@ -1,15 +1,13 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
 class EmailService {
   constructor() {
-    // Create transporter using Gmail (you can use other services too)
-    this.transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.EMAIL_USER, // Your Gmail
-        pass: process.env.EMAIL_PASSWORD // App password
-      }
-    });
+    // Initialize Resend with API key
+    this.resend = new Resend(process.env.RESEND_API_KEY);
+
+    if (!process.env.RESEND_API_KEY) {
+      console.error('❌ RESEND_API_KEY not configured');
+    }
   }
 
   // Send booking confirmation to customer
@@ -35,8 +33,8 @@ class EmailService {
       day: 'numeric'
     });
 
-    const mailOptions = {
-      from: `"MountGC" <${process.env.EMAIL_USER}>`,
+    const emailData = {
+      from: process.env.EMAIL_FROM || 'MountGC <onboarding@resend.dev>',
       to: email,
       subject: `✅ Booking Confirmed - MountGC Counseling Session #${booking_id}`,
       html: `
@@ -145,9 +143,15 @@ class EmailService {
     };
 
     try {
-      await this.transporter.sendMail(mailOptions);
-      console.log(`✅ Booking confirmation email sent to ${email}`);
-      return { success: true, message: 'Email sent successfully' };
+      const { data, error } = await this.resend.emails.send(emailData);
+
+      if (error) {
+        console.error('❌ Error sending booking confirmation email:', error);
+        return { success: false, error: error.message };
+      }
+
+      console.log(`✅ Booking confirmation email sent to ${email}`, data);
+      return { success: true, message: 'Email sent successfully', data };
     } catch (error) {
       console.error('❌ Error sending email:', error);
       throw error;
@@ -177,8 +181,8 @@ class EmailService {
       day: 'numeric'
     });
 
-    const mailOptions = {
-      from: `"MountGC Booking System" <${process.env.EMAIL_USER}>`,
+    const emailData = {
+      from: process.env.EMAIL_FROM || 'MountGC <onboarding@resend.dev>',
       to: process.env.ADMIN_EMAIL,
       subject: `🔔 New Booking #${booking_id} - ${category}`,
       html: `
@@ -272,9 +276,15 @@ class EmailService {
     };
 
     try {
-      await this.transporter.sendMail(mailOptions);
-      console.log(`✅ Admin notification email sent`);
-      return { success: true, message: 'Admin email sent successfully' };
+      const { data, error } = await this.resend.emails.send(emailData);
+
+      if (error) {
+        console.error('❌ Error sending admin notification email:', error);
+        return { success: false, error: error.message };
+      }
+
+      console.log(`✅ Admin notification email sent`, data);
+      return { success: true, message: 'Admin email sent successfully', data };
     } catch (error) {
       console.error('❌ Error sending admin email:', error);
       throw error;
