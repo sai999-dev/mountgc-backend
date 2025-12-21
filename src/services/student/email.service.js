@@ -16,7 +16,7 @@ const sendVerificationEmail = async (email, username, verificationToken) => {
 
   try {
     const { data, error } = await resend.emails.send({
-      from: 'MountGC <onboarding@resend.dev>', // Use resend.dev for testing, or your domain
+      from: process.env.EMAIL_FROM || 'MountGC <noreply@mountgc.com>',
       to: email,
       subject: 'Verify Your Email - MountGC',
       html: `
@@ -109,7 +109,7 @@ const sendPasswordResetEmail = async (email, username, resetToken) => {
 
   try {
     const { data, error } = await resend.emails.send({
-      from: 'MountGC <onboarding@resend.dev>',
+      from: process.env.EMAIL_FROM || 'MountGC <noreply@mountgc.com>',
       to: email,
       subject: 'Reset Your Password - MountGC',
       html: `

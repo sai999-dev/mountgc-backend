@@ -34,7 +34,7 @@ class EmailService {
     });
 
     const emailData = {
-      from: process.env.EMAIL_FROM || 'MountGC <onboarding@resend.dev>',
+      from: process.env.EMAIL_FROM || 'MountGC <noreply@mountgc.com>',
       to: email,
       subject: `✅ Booking Confirmed - MountGC Counseling Session #${booking_id}`,
       html: `
@@ -182,7 +182,7 @@ class EmailService {
     });
 
     const emailData = {
-      from: process.env.EMAIL_FROM || 'MountGC <onboarding@resend.dev>',
+      from: process.env.EMAIL_FROM || 'MountGC <noreply@mountgc.com>',
       to: process.env.ADMIN_EMAIL,
       subject: `🔔 New Booking #${booking_id} - ${category}`,
       html: `
