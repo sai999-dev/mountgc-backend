@@ -110,7 +110,7 @@ model ResearchPaperPurchase {
   user_id          Int
   name             String
   email            String
-  phone            String
+  phone            String?   // Optional - some purchases may not have phone
   currency         String    // INR, USD, EUR
   co_authors       Int       // Number of co-authors selected
   actual_amount    Float     // Original amount
@@ -211,7 +211,7 @@ model VisaApplicationPurchase {
   user_id          Int
   name             String
   email            String
-  phone            String
+  phone            String?   // Optional - some purchases may not have phone
   country          String    // USA, Canada, UK
   currency         String    // INR, USD, EUR
   dependents       Int       // Number of dependents selected
