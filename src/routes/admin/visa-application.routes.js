@@ -20,18 +20,19 @@ router.put('/configs/:id', visaApplicationController.updateConfig);
 router.delete('/configs/:id', visaApplicationController.deleteConfig);
 
 // ==================== PURCHASE ROUTES ====================
-
-// GET /api/admin/visa-applications/purchases - Get all purchases
-router.get('/purchases', visaApplicationController.getAllPurchases);
-
-// GET /api/admin/visa-applications/purchases/stats - Get purchase statistics
-router.get('/purchases/stats', visaApplicationController.getPurchaseStats);
+// IMPORTANT: More specific routes must come BEFORE generic routes with params
 
 // GET /api/admin/visa-applications/purchases/stats/country - Get statistics by country
 router.get('/purchases/stats/country', visaApplicationController.getStatsByCountry);
 
 // GET /api/admin/visa-applications/purchases/stats/status - Get statistics by status
 router.get('/purchases/stats/status', visaApplicationController.getStatsByStatus);
+
+// GET /api/admin/visa-applications/purchases/stats - Get purchase statistics
+router.get('/purchases/stats', visaApplicationController.getPurchaseStats);
+
+// GET /api/admin/visa-applications/purchases - Get all purchases
+router.get('/purchases', visaApplicationController.getAllPurchases);
 
 // GET /api/admin/visa-applications/purchases/:id - Get purchase by ID
 router.get('/purchases/:id', visaApplicationController.getPurchaseById);

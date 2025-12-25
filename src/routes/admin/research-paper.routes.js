@@ -20,8 +20,9 @@ router.put('/configs/:id', updateConfig);
 router.delete('/configs/:id', deleteConfig);
 
 // Purchase management routes
-router.get('/purchases', getAllPurchases);
+// IMPORTANT: More specific routes (/purchases/stats) must come BEFORE generic routes (/purchases/:id)
 router.get('/purchases/stats', getPurchaseStats);
+router.get('/purchases', getAllPurchases);
 router.get('/purchases/:id', getPurchaseById);
 router.put('/purchases/:id/status', updatePurchaseStatus);
 
