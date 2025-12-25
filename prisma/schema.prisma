@@ -110,7 +110,7 @@ model ResearchPaperPurchase {
   user_id          Int
   name             String
   email            String
-  phone            String?
+  phone            String
   currency         String    // INR, USD, EUR
   co_authors       Int       // Number of co-authors selected
   actual_amount    Float     // Original amount
@@ -211,7 +211,7 @@ model VisaApplicationPurchase {
   user_id          Int
   name             String
   email            String
-  phone            String?
+  phone            String
   country          String    // USA, Canada, UK
   currency         String    // INR, USD, EUR
   dependents       Int       // Number of dependents selected
@@ -277,4 +277,21 @@ model UserAgreement {
   @@index([service_type])
   @@index([terms_id])
   @@map("user_agreements")
+}
+
+model AdminOtp {
+  id               Int       @id @default(autoincrement())
+  email            String
+  otp_code         String    @db.VarChar(6)
+  created_at       DateTime  @default(now())
+  expires_at       DateTime
+  is_used          Boolean   @default(false)
+  attempts         Int       @default(0)
+  ip_address       String?   @db.VarChar(45)
+  user_agent       String?   @db.Text
+
+  @@index([email])
+  @@index([otp_code])
+  @@index([expires_at])
+  @@map("admin_otp")
 }

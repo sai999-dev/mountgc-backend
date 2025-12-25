@@ -5,6 +5,7 @@ const { authenticateToken } = require('../middleware/auth.middleware');
 console.log('🔍 Loading routes...');
 
 const authRoutes = require('./auth.routes');
+const adminAuthRoutes = require('./admin-auth.routes');
 const userRoutes = require('./user.routes');
 const studentBookingRoutes = require('./student/booking.routes');
 const studentRoutes = require('./student');
@@ -12,6 +13,7 @@ const adminRoutes = require('./admin');
 const stripeRoutes = require('./payment/stripe.routes');
 
 router.use('/auth', authRoutes);
+router.use('/admin-auth', adminAuthRoutes);
 router.use('/user', userRoutes);
 router.use('/bookings', studentBookingRoutes);
 router.use('/student', studentRoutes);

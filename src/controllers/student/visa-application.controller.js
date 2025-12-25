@@ -117,10 +117,10 @@ const createPurchase = async (req, res) => {
     } = req.body;
 
     // Validate required fields
-    if (!name || !email || !country || !currency || dependents === undefined || mocks === undefined) {
+    if (!name || !email || !phone || !country || !currency || dependents === undefined || mocks === undefined) {
       return res.status(400).json({
         success: false,
-        message: 'Name, email, country, currency, dependents, and mocks are required',
+        message: 'Name, email, phone, country, currency, dependents, and mocks are required',
       });
     }
 

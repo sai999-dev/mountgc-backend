@@ -90,10 +90,10 @@ const createPurchase = async (req, res) => {
     } = req.body;
 
     // Validate required fields
-    if (!name || !email || !currency || co_authors === undefined || !final_amount) {
+    if (!name || !email || !phone || !currency || co_authors === undefined || !final_amount) {
       return res.status(400).json({
         success: false,
-        message: 'Name, email, currency, co_authors, and final_amount are required'
+        message: 'Name, email, phone, currency, co_authors, and final_amount are required'
       });
     }
 

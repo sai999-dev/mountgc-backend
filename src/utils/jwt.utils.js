@@ -36,9 +36,34 @@ const verifyRefreshToken = (token) => {
   }
 };
 
+// Generate long-lived admin access token (30 days, no refresh needed)
+const generateAdminAccessToken = (email) => {
+  return jwt.sign(
+    { email, role: 'admin', type: 'admin' },
+    process.env.JWT_SECRET,
+    { expiresIn: '30d' } // Long-lived token for admin
+  );
+};
+
+// Verify admin token
+const verifyAdminToken = (token) => {
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // Verify it's an admin token
+    if (decoded.type === 'admin' && decoded.role === 'admin') {
+      return decoded;
+    }
+    return null;
+  } catch (error) {
+    return null;
+  }
+};
+
 module.exports = {
   generateAccessToken,
   generateRefreshToken,
   verifyAccessToken,
-  verifyRefreshToken
+  verifyRefreshToken,
+  generateAdminAccessToken,
+  verifyAdminToken
 };
