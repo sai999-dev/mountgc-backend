@@ -10,16 +10,14 @@ const {
   toggleTimeSlotStatus
 } = require('../../controllers/admin/timeslot.controller');
 
-const { authenticateToken } = require('../../middleware/auth.middleware');
-
 // Public route - Get active time slots
 router.get('/active', getActiveTimeSlots);
 
-// Admin routes
-router.get('/', authenticateToken, getAllTimeSlots);
-router.post('/', authenticateToken, createTimeSlot);
-router.put('/:id', authenticateToken, updateTimeSlot);
-router.delete('/:id', authenticateToken, deleteTimeSlot);
-router.patch('/:id/toggle', authenticateToken, toggleTimeSlotStatus);
+// Admin routes - authenticateAdmin already applied at parent level
+router.get('/', getAllTimeSlots);
+router.post('/', createTimeSlot);
+router.put('/:id', updateTimeSlot);
+router.delete('/:id', deleteTimeSlot);
+router.patch('/:id/toggle', toggleTimeSlotStatus);
 
 module.exports = router;
