@@ -180,7 +180,13 @@ const deleteConfig = async (req, res) => {
 // Get all purchases
 const getAllPurchases = async (req, res) => {
   try {
+    console.log('📊 [Admin] Fetching all research paper purchases...');
+    console.log('📊 [Admin] Request user:', req.user);
+    console.log('📊 [Admin] Request admin:', req.admin);
+
     const purchases = await researchPaperPurchaseRepository.findAllWithUsers();
+
+    console.log(`📊 [Admin] Found ${purchases.length} research paper purchases`);
 
     res.status(200).json({
       success: true,
@@ -188,7 +194,8 @@ const getAllPurchases = async (req, res) => {
       data: purchases
     });
   } catch (error) {
-    console.error('Get all purchases error:', error);
+    console.error('❌ [Admin] Get all purchases error:', error);
+    console.error('❌ [Admin] Error stack:', error.stack);
     res.status(500).json({
       success: false,
       message: 'Failed to retrieve purchases',

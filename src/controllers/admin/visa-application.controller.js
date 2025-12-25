@@ -207,7 +207,13 @@ const deleteConfig = async (req, res) => {
  */
 const getAllPurchases = async (req, res) => {
   try {
+    console.log('📊 [Admin] Fetching all visa application purchases...');
+    console.log('📊 [Admin] Request user:', req.user);
+    console.log('📊 [Admin] Request admin:', req.admin);
+
     const purchases = await visaApplicationPurchaseRepository.findAllWithUsers();
+
+    console.log(`📊 [Admin] Found ${purchases.length} visa application purchases`);
 
     res.status(200).json({
       success: true,
@@ -215,7 +221,8 @@ const getAllPurchases = async (req, res) => {
       data: purchases,
     });
   } catch (error) {
-    console.error('Get all purchases error:', error);
+    console.error('❌ [Admin] Get all visa purchases error:', error);
+    console.error('❌ [Admin] Error stack:', error.stack);
     res.status(500).json({
       success: false,
       message: 'Failed to retrieve purchases',
