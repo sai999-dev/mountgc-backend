@@ -28,8 +28,8 @@ model User {
   last_login_at        DateTime?
 
   device_sessions      DeviceSession[]
-  research_purchases   ResearchPaperPurchase[]
-  visa_purchases       VisaApplicationPurchase[]
+  research_purchases   ResearchPaperPurchase[] @relation("UserResearchPurchases")
+  visa_purchases       VisaApplicationPurchase[] @relation("UserVisaPurchases")
   transactions         Transaction[]
   user_agreements      UserAgreement[]
 
@@ -128,7 +128,7 @@ model ResearchPaperPurchase {
   created_at       DateTime  @default(now())
   updated_at       DateTime  @updatedAt
 
-  user             User      @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  user             User      @relation("UserResearchPurchases", fields: [user_id], references: [user_id], onDelete: Cascade)
 
   @@index([user_id])
   @@index([payment_status])
@@ -231,7 +231,7 @@ model VisaApplicationPurchase {
   updated_at       DateTime  @updatedAt
   order_id         String    @unique @default(uuid()) // Order reference for student/admin
 
-  user             User      @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  user             User      @relation("UserVisaPurchases", fields: [user_id], references: [user_id], onDelete: Cascade)
 
   @@index([user_id])
   @@index([payment_status])
