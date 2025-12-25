@@ -30,6 +30,14 @@ const authenticateAdmin = (req, res, next) => {
       role: decoded.role
     };
 
+    // Also set req.user for backward compatibility with controllers that expect it
+    // Admin users don't have userId in database, so we use email as identifier
+    req.user = {
+      email: decoded.email,
+      role: decoded.role,
+      userId: null // Admins don't have user_id in the users table
+    };
+
     next();
   } catch (error) {
     console.error('Admin auth middleware error:', error);
