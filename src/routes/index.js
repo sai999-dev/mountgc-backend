@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/auth.middleware');
+const { authenticateAdmin } = require('../middleware/admin-auth.middleware');
 
 console.log('🔍 Loading routes...');
 
@@ -55,7 +56,7 @@ router.get('/timeslots/active', async (req, res) => {
   }
 });
 
-router.use('/admin', authenticateToken, adminRoutes);
+router.use('/admin', authenticateAdmin, adminRoutes);
 
 console.log('✅ Routes loaded successfully');
 
