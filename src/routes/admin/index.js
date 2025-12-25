@@ -1,6 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const { authenticateToken, authorizeRole } = require('../../middleware/auth.middleware');
 
 // Import only the routes that exist
 const timeslotRoutes = require('./timeslot.routes');
@@ -10,9 +9,7 @@ const termsRoutes = require('./terms.routes');
 const { getAllBookings } = require('../../controllers/student/booking.controller');
 const { getAllUsers, getUserById, updateUser, deleteUser } = require('../../controllers/user.controller');
 
-// Apply authentication middleware to all admin routes
-router.use(authenticateToken);
-router.use(authorizeRole('admin'));
+// No need to apply middleware here - authenticateAdmin is already applied at parent level in src/routes/index.js
 
 // Register admin routes
 router.use('/timeslots', timeslotRoutes);
