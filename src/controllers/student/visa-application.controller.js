@@ -264,9 +264,12 @@ const createCheckoutSession = async (req, res) => {
  */
 const getMyPurchases = async (req, res) => {
   try {
+    console.log('📦 [Student] Fetching visa application purchases for user:', req.user.userId);
     const userId = req.user.userId; // From auth middleware
 
     const purchases = await visaApplicationPurchaseRepository.findByUserId(userId);
+
+    console.log(`📦 [Student] Found ${purchases.length} visa application purchases for user ${userId}`);
 
     res.status(200).json({
       success: true,
@@ -274,7 +277,8 @@ const getMyPurchases = async (req, res) => {
       data: purchases,
     });
   } catch (error) {
-    console.error('Get my purchases error:', error);
+    console.error('❌ [Student] Get my visa purchases error:', error);
+    console.error('❌ [Student] Error stack:', error.stack);
     res.status(500).json({
       success: false,
       message: 'Failed to retrieve your visa applications',

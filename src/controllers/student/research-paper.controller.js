@@ -146,9 +146,12 @@ const createPurchase = async (req, res) => {
 // Get user's purchases
 const getMyPurchases = async (req, res) => {
   try {
+    console.log('📦 [Student] Fetching research paper purchases for user:', req.user.userId);
     const userId = req.user.userId;
 
     const purchases = await researchPaperPurchaseRepository.findByUserId(userId);
+
+    console.log(`📦 [Student] Found ${purchases.length} research paper purchases for user ${userId}`);
 
     res.status(200).json({
       success: true,
@@ -156,7 +159,8 @@ const getMyPurchases = async (req, res) => {
       data: purchases
     });
   } catch (error) {
-    console.error('Get my purchases error:', error);
+    console.error('❌ [Student] Get my purchases error:', error);
+    console.error('❌ [Student] Error stack:', error.stack);
     res.status(500).json({
       success: false,
       message: 'Failed to retrieve purchases',
