@@ -22,6 +22,8 @@ model User {
   email_verified_at    DateTime?
   verification_token   String?   @unique
   token_expires_at     DateTime?
+  password_reset_token String?   @unique
+  password_reset_expires DateTime?
   is_active            Boolean   @default(true)
   created_at           DateTime  @default(now())
   refresh_token        String?   @db.Text

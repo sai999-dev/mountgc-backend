@@ -1,14 +1,16 @@
 const express = require('express');
 const router = express.Router();
 
-const { 
-  signup, 
+const {
+  signup,
   verifyEmail,
   resendVerificationEmail,
-  login, 
-  refreshAccessToken, 
+  login,
+  refreshAccessToken,
   logout,
-  getActiveSessions
+  getActiveSessions,
+  forgotPassword,
+  resetPassword
 } = require('../controllers/auth.controller');
 const {
   signupValidator,
@@ -48,6 +50,10 @@ router.get('/verify-email', verifyEmail);
 router.post('/resend-verification', resendVerificationValidator, validate, resendVerificationEmail);
 router.post('/login', loginValidator, validate, login);
 router.post('/refresh-token', refreshAccessToken);
+
+// Password reset routes (public)
+router.post('/forgot-password', forgotPassword);
+router.post('/reset-password', resetPassword);
 
 // Protected routes
 router.post('/logout', authenticateTokenForLogout, logout); // Use lenient auth for logout
