@@ -32,6 +32,7 @@ model User {
   device_sessions      DeviceSession[]
   research_purchases   ResearchPaperPurchase[] @relation("UserResearchPurchases")
   visa_purchases       VisaApplicationPurchase[] @relation("UserVisaPurchases")
+  counselling_purchases CounsellingPurchase[] @relation("UserCounsellingPurchases")
   transactions         Transaction[]
   user_agreements      UserAgreement[]
 
@@ -296,4 +297,115 @@ model AdminOtp {
   @@index([otp_code])
   @@index([expires_at])
   @@map("admin_otp")
+}
+
+// Counselling Session Service Types (Admin manageable)
+model CounsellingServiceType {
+  service_type_id  Int       @id @default(autoincrement())
+  name             String    // e.g., "Initial Counseling Session", "Complete Application Help"
+  description      String?   @db.Text
+  duration         String    @default("1 hour") // e.g., "1 hour", "2 hours"
+  is_active        Boolean   @default(true)
+  display_order    Int       @default(0) // For ordering in dropdown
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @updatedAt
+
+  pricing_configs  CounsellingPricingConfig[]
+  purchases        CounsellingPurchase[]
+
+  @@map("counselling_service_types")
+}
+
+// Counselling Session Counselors (Admin manageable)
+model Counselor {
+  counselor_id     Int       @id @default(autoincrement())
+  name             String
+  role             String?   // e.g., "Senior Counselor", "Visa Specialist"
+  email            String?
+  is_active        Boolean   @default(true)
+  display_order    Int       @default(0)
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @updatedAt
+
+  pricing_configs  CounsellingPricingConfig[]
+  purchases        CounsellingPurchase[]
+
+  @@map("counselors")
+}
+
+// Counselling Session Pricing Configuration (Admin manageable)
+model CounsellingPricingConfig {
+  config_id        Int       @id @default(autoincrement())
+  service_type_id  Int
+  counselor_id     Int?      // Optional: different pricing per counselor
+  currency         String    // INR, USD, EUR
+  actual_price     Float     // Original price
+  discounted_price Float     // Discounted price
+  discount_percent Float     @default(20.0)
+  is_active        Boolean   @default(true)
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @updatedAt
+
+  service_type     CounsellingServiceType @relation(fields: [service_type_id], references: [service_type_id], onDelete: Cascade)
+  counselor        Counselor? @relation(fields: [counselor_id], references: [counselor_id], onDelete: SetNull)
+
+  @@unique([service_type_id, counselor_id, currency])
+  @@index([service_type_id])
+  @@index([counselor_id])
+  @@index([currency])
+  @@map("counselling_pricing_configs")
+}
+
+// Counselling Session Purchases
+model CounsellingPurchase {
+  purchase_id      Int       @id @default(autoincrement())
+  user_id          Int
+  service_type_id  Int
+  counselor_id     Int?
+
+  // Customer info
+  name             String
+  email            String
+  phone            String
+
+  // Pricing info
+  currency         String
+  actual_amount    Float
+  discount_amount  Float
+  final_amount     Float
+
+  // Session details
+  duration         String
+  scheduled_date   DateTime?
+  scheduled_time   String?
+  meeting_link     String?   // Google Meet link
+
+  // Payment info
+  payment_status   String    @default("pending") // pending, completed, failed, refunded
+  payment_id       String?
+  payment_method   String?
+
+  // Notes
+  notes            String?   @db.Text // Student notes/requirements
+  admin_notes      String?   @db.Text // Admin internal notes
+
+  // Status tracking
+  case_status      String    @default("open") // open, closed
+  status           String    @default("initiated") // initiated, scheduled, in_progress, completed, cancelled
+
+  order_id         String    @unique @default(uuid())
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @updatedAt
+
+  user             User      @relation("UserCounsellingPurchases", fields: [user_id], references: [user_id], onDelete: Cascade)
+  service_type     CounsellingServiceType @relation(fields: [service_type_id], references: [service_type_id])
+  counselor        Counselor? @relation(fields: [counselor_id], references: [counselor_id])
+
+  @@index([user_id])
+  @@index([service_type_id])
+  @@index([counselor_id])
+  @@index([payment_status])
+  @@index([status])
+  @@index([case_status])
+  @@map("counselling_purchases")
 }

@@ -12,6 +12,7 @@ const studentBookingRoutes = require('./student/booking.routes');
 const studentRoutes = require('./student');
 const adminRoutes = require('./admin');
 const stripeRoutes = require('./payment/stripe.routes');
+const counsellingRoutes = require('./counselling.routes');
 
 router.use('/auth', authRoutes);
 router.use('/admin-auth', adminAuthRoutes);
@@ -19,6 +20,7 @@ router.use('/user', userRoutes);
 router.use('/bookings', studentBookingRoutes);
 router.use('/student', studentRoutes);
 router.use('/payment/stripe', stripeRoutes);
+router.use('/counselling', counsellingRoutes);
 
 router.get('/timeslots/active', async (req, res) => {
   try {
