@@ -229,6 +229,89 @@ const getUserTransactions = async (req, res) => {
 };
 
 /**
+ * Create Stripe Checkout Session for Counselling Session Purchase
+ */
+const createCounsellingCheckoutSession = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { purchaseId } = req.body;
+
+    if (!purchaseId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Purchase ID is required',
+      });
+    }
+
+    // Get purchase details
+    const purchase = await prisma.counsellingPurchase.findUnique({
+      where: { purchase_id: parseInt(purchaseId) },
+      include: {
+        service_type: true,
+        counselor: true,
+      },
+    });
+
+    if (!purchase) {
+      return res.status(404).json({
+        success: false,
+        message: 'Purchase not found',
+      });
+    }
+
+    // Verify purchase belongs to user
+    if (purchase.user_id !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized access to this purchase',
+      });
+    }
+
+    // Check if already paid
+    if (purchase.payment_status === 'completed') {
+      return res.status(400).json({
+        success: false,
+        message: 'This purchase has already been paid',
+      });
+    }
+
+    // Create Stripe Checkout Session
+    const session = await stripeService.createCheckoutSession({
+      userId,
+      serviceType: 'counselling',
+      serviceId: purchase.purchase_id,
+      amount: purchase.final_amount,
+      currency: purchase.currency,
+      description: `Counselling Session - ${purchase.service_type.name}`,
+      metadata: {
+        purchaseName: purchase.name,
+        purchaseEmail: purchase.email,
+        serviceTypeName: purchase.service_type.name,
+        counselorName: purchase.counselor?.name || 'Any Available',
+        duration: purchase.duration,
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Checkout session created successfully',
+      data: {
+        sessionId: session.sessionId,
+        sessionUrl: session.sessionUrl,
+        transactionId: session.transactionId,
+      },
+    });
+  } catch (error) {
+    console.error('Create counselling checkout session error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create checkout session',
+      error: error.message,
+    });
+  }
+};
+
+/**
  * TEST ENDPOINT: Manually trigger webhook processing
  * Use this to test webhook logic without Stripe CLI
  */
@@ -280,6 +363,7 @@ const testWebhookProcessing = async (req, res) => {
 
 module.exports = {
   createResearchPaperCheckoutSession,
+  createCounsellingCheckoutSession,
   getSessionStatus,
   handleStripeWebhook,
   getTransaction,

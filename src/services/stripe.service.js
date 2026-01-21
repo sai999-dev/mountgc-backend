@@ -8,6 +8,10 @@ const {
   sendPurchaseConfirmationEmail: sendVisaApplicationConfirmationEmail,
   sendAdminNotificationEmail: sendVisaApplicationAdminNotification,
 } = require('./student/visa-application-email.service');
+const {
+  sendPurchaseConfirmationEmail: sendCounsellingConfirmationEmail,
+  sendAdminNotificationEmail: sendCounsellingAdminNotification,
+} = require('./student/counselling-email.service');
 
 // Initialize Stripe with secret key
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -269,6 +273,60 @@ class StripeService {
         });
 
         console.log(`✅ Visa application purchase #${serviceId} payment completed and emails sent`);
+      }
+      // Handle counselling session payments
+      else if (serviceType === 'counselling') {
+        console.log(`📝 Updating counselling purchase #${serviceId}...`);
+        const purchase = await prisma.counsellingPurchase.update({
+          where: { purchase_id: serviceId },
+          data: {
+            payment_status: 'completed',
+            payment_id: paymentIntentId,
+            payment_method: session.payment_method_types?.[0] || 'card',
+            status: 'scheduled', // Move to scheduled after payment (awaiting session scheduling)
+          },
+          include: {
+            service_type: true,
+            counselor: true,
+          },
+        });
+
+        console.log(`✅ Counselling purchase #${serviceId} updated:`);
+        console.log(`   - payment_status: ${purchase.payment_status}`);
+        console.log(`   - payment_id: ${purchase.payment_id}`);
+        console.log(`   - status: ${purchase.status}`);
+
+        // Send confirmation email to student
+        console.log('📧 Sending counselling confirmation email...');
+        await sendCounsellingConfirmationEmail({
+          studentEmail: purchase.email,
+          studentName: purchase.name,
+          purchaseId: purchase.purchase_id,
+          orderId: purchase.order_id,
+          currency: purchase.currency,
+          amount: purchase.final_amount,
+          serviceTypeName: purchase.service_type.name,
+          counselorName: purchase.counselor?.name,
+          duration: purchase.duration,
+        });
+
+        // Send notification email to admin
+        console.log('📧 Sending counselling admin notification email...');
+        await sendCounsellingAdminNotification({
+          studentName: purchase.name,
+          studentEmail: purchase.email,
+          studentPhone: purchase.phone,
+          purchaseId: purchase.purchase_id,
+          orderId: purchase.order_id,
+          currency: purchase.currency,
+          amount: purchase.final_amount,
+          serviceTypeName: purchase.service_type.name,
+          counselorName: purchase.counselor?.name,
+          duration: purchase.duration,
+          notes: purchase.notes,
+        });
+
+        console.log(`✅ Counselling purchase #${serviceId} payment completed and emails sent`);
       }
 
       console.log(`✅ Payment processed successfully for ${serviceType} #${serviceId}`);

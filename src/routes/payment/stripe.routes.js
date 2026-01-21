@@ -3,6 +3,7 @@ const router = express.Router();
 const { authenticateToken } = require('../../middleware/auth.middleware');
 const {
   createResearchPaperCheckoutSession,
+  createCounsellingCheckoutSession,
   getSessionStatus,
   handleStripeWebhook,
   getTransaction,
@@ -12,6 +13,7 @@ const {
 
 // Protected routes - require authentication
 router.post('/create-checkout-session/research-paper', authenticateToken, createResearchPaperCheckoutSession);
+router.post('/create-checkout-session/counselling', authenticateToken, createCounsellingCheckoutSession);
 router.get('/session-status', getSessionStatus); // Public - used after redirect
 router.get('/transactions', authenticateToken, getUserTransactions);
 router.get('/transaction/:transactionId', authenticateToken, getTransaction);
