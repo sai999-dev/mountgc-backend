@@ -6,7 +6,8 @@ const adminController = require("../controllers/admin/counselling.controller");
 const studentController = require("../controllers/student/counselling.controller");
 
 // Middleware
-const { authenticateToken, authorizeRole } = require("../middleware/auth.middleware");
+const { authenticateToken } = require("../middleware/auth.middleware");
+const { authenticateAdmin } = require("../middleware/admin-auth.middleware");
 
 // ==================== PUBLIC ROUTES ====================
 
@@ -27,29 +28,29 @@ router.get("/my-purchases/:id", authenticateToken, studentController.getPurchase
 // ==================== ADMIN ROUTES ====================
 
 // Service Types
-router.get("/admin/service-types", authenticateToken, authorizeRole("admin"), adminController.getServiceTypes);
-router.post("/admin/service-types", authenticateToken, authorizeRole("admin"), adminController.createServiceType);
-router.put("/admin/service-types/:id", authenticateToken, authorizeRole("admin"), adminController.updateServiceType);
-router.delete("/admin/service-types/:id", authenticateToken, authorizeRole("admin"), adminController.deleteServiceType);
+router.get("/admin/service-types", authenticateAdmin, adminController.getServiceTypes);
+router.post("/admin/service-types", authenticateAdmin, adminController.createServiceType);
+router.put("/admin/service-types/:id", authenticateAdmin, adminController.updateServiceType);
+router.delete("/admin/service-types/:id", authenticateAdmin, adminController.deleteServiceType);
 
 // Counselors
-router.get("/admin/counselors", authenticateToken, authorizeRole("admin"), adminController.getCounselors);
-router.post("/admin/counselors", authenticateToken, authorizeRole("admin"), adminController.createCounselor);
-router.put("/admin/counselors/:id", authenticateToken, authorizeRole("admin"), adminController.updateCounselor);
-router.delete("/admin/counselors/:id", authenticateToken, authorizeRole("admin"), adminController.deleteCounselor);
+router.get("/admin/counselors", authenticateAdmin, adminController.getCounselors);
+router.post("/admin/counselors", authenticateAdmin, adminController.createCounselor);
+router.put("/admin/counselors/:id", authenticateAdmin, adminController.updateCounselor);
+router.delete("/admin/counselors/:id", authenticateAdmin, adminController.deleteCounselor);
 
 // Pricing Configs
-router.get("/admin/pricing", authenticateToken, authorizeRole("admin"), adminController.getPricingConfigs);
-router.post("/admin/pricing", authenticateToken, authorizeRole("admin"), adminController.createPricingConfig);
-router.put("/admin/pricing/:id", authenticateToken, authorizeRole("admin"), adminController.updatePricingConfig);
-router.delete("/admin/pricing/:id", authenticateToken, authorizeRole("admin"), adminController.deletePricingConfig);
+router.get("/admin/pricing", authenticateAdmin, adminController.getPricingConfigs);
+router.post("/admin/pricing", authenticateAdmin, adminController.createPricingConfig);
+router.put("/admin/pricing/:id", authenticateAdmin, adminController.updatePricingConfig);
+router.delete("/admin/pricing/:id", authenticateAdmin, adminController.deletePricingConfig);
 
 // Purchases Management
-router.get("/admin/purchases", authenticateToken, authorizeRole("admin"), adminController.getPurchases);
-router.get("/admin/purchases/:id", authenticateToken, authorizeRole("admin"), adminController.getPurchaseById);
-router.put("/admin/purchases/:id", authenticateToken, authorizeRole("admin"), adminController.updatePurchase);
+router.get("/admin/purchases", authenticateAdmin, adminController.getPurchases);
+router.get("/admin/purchases/:id", authenticateAdmin, adminController.getPurchaseById);
+router.put("/admin/purchases/:id", authenticateAdmin, adminController.updatePurchase);
 
 // Dashboard Stats
-router.get("/admin/dashboard-stats", authenticateToken, authorizeRole("admin"), adminController.getDashboardStats);
+router.get("/admin/dashboard-stats", authenticateAdmin, adminController.getDashboardStats);
 
 module.exports = router;
