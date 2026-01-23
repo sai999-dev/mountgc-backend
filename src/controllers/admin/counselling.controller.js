@@ -417,9 +417,40 @@ const getPurchases = async (req, res) => {
       orderBy: { created_at: "desc" },
     });
 
+    // Fetch agreements for all purchases
+    const userIds = [...new Set(purchases.map(p => p.user_id))];
+    const agreements = await prisma.userAgreement.findMany({
+      where: {
+        user_id: { in: userIds },
+        service_type: 'counselling_session',
+      },
+      select: {
+        user_id: true,
+        counselling_service_type_id: true,
+        signed_name: true,
+        agreed_at: true,
+        terms_title: true,
+        terms_version: true,
+      },
+    });
+
+    // Map agreements to purchases
+    const purchasesWithAgreements = purchases.map(purchase => {
+      const agreement = agreements.find(
+        a => a.user_id === purchase.user_id &&
+             a.counselling_service_type_id === purchase.service_type_id
+      );
+      return {
+        ...purchase,
+        has_agreement: !!agreement,
+        agreement_signed_at: agreement?.agreed_at || null,
+        agreement_signed_name: agreement?.signed_name || null,
+      };
+    });
+
     res.json({
       success: true,
-      data: purchases,
+      data: purchasesWithAgreements,
     });
   } catch (error) {
     console.error("Error fetching purchases:", error);
@@ -458,9 +489,30 @@ const getPurchaseById = async (req, res) => {
       });
     }
 
+    // Get user's agreement for this counselling service type
+    const agreement = await prisma.userAgreement.findFirst({
+      where: {
+        user_id: purchase.user_id,
+        service_type: 'counselling_session',
+        counselling_service_type_id: purchase.service_type_id,
+      },
+      include: {
+        terms: {
+          select: {
+            terms_id: true,
+            title: true,
+            version: true,
+          },
+        },
+      },
+    });
+
     res.json({
       success: true,
-      data: purchase,
+      data: {
+        ...purchase,
+        user_agreement: agreement,
+      },
     });
   } catch (error) {
     console.error("Error fetching purchase:", error);

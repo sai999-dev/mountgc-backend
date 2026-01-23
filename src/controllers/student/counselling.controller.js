@@ -95,7 +95,7 @@ const getPricing = async (req, res) => {
 // Create a purchase (requires authentication)
 const createPurchase = async (req, res) => {
   try {
-    const userId = req.user.user_id;
+    const userId = req.user.userId;
     const {
       service_type_id,
       counselor_id,
@@ -180,7 +180,7 @@ const createPurchase = async (req, res) => {
 // Get user's purchases
 const getMyPurchases = async (req, res) => {
   try {
-    const userId = req.user.user_id;
+    const userId = req.user.userId;
 
     const purchases = await prisma.counsellingPurchase.findMany({
       where: { user_id: userId },
@@ -208,7 +208,7 @@ const getMyPurchases = async (req, res) => {
 // Get single purchase details
 const getPurchaseById = async (req, res) => {
   try {
-    const userId = req.user.user_id;
+    const userId = req.user.userId;
     const { id } = req.params;
 
     const purchase = await prisma.counsellingPurchase.findFirst({

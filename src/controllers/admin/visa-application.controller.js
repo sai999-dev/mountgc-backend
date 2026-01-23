@@ -215,10 +215,38 @@ const getAllPurchases = async (req, res) => {
 
     console.log(`📊 [Admin] Found ${purchases.length} visa application purchases`);
 
+    // Fetch agreements for all users who made purchases
+    const prisma = require('../../config/prisma');
+    const userIds = [...new Set(purchases.map(p => p.user_id))];
+    const agreements = await prisma.userAgreement.findMany({
+      where: {
+        user_id: { in: userIds },
+        service_type: 'visa_application',
+      },
+      select: {
+        user_id: true,
+        signed_name: true,
+        agreed_at: true,
+        terms_title: true,
+        terms_version: true,
+      },
+    });
+
+    // Map agreements to purchases
+    const purchasesWithAgreements = purchases.map(purchase => {
+      const agreement = agreements.find(a => a.user_id === purchase.user_id);
+      return {
+        ...purchase,
+        has_agreement: !!agreement,
+        agreement_signed_at: agreement?.agreed_at || null,
+        agreement_signed_name: agreement?.signed_name || null,
+      };
+    });
+
     res.status(200).json({
       success: true,
       message: 'Purchases retrieved successfully',
-      data: purchases,
+      data: purchasesWithAgreements,
     });
   } catch (error) {
     console.error('❌ [Admin] Get all visa purchases error:', error);
