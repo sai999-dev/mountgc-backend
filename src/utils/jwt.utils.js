@@ -1,11 +1,15 @@
 const jwt = require('jsonwebtoken');
 
-// Generate access token (short-lived)
+// Default token expiration times
+const DEFAULT_ACCESS_TOKEN_EXPIRY = '7d';  // 7 days for student convenience
+const DEFAULT_REFRESH_TOKEN_EXPIRY = '30d'; // 30 days
+
+// Generate access token (longer-lived for better UX)
 const generateAccessToken = (userId, email, role) => {
   return jwt.sign(
     { userId, email, role },
     process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN }
+    { expiresIn: process.env.JWT_EXPIRES_IN || DEFAULT_ACCESS_TOKEN_EXPIRY }
   );
 };
 
@@ -14,7 +18,7 @@ const generateRefreshToken = (userId) => {
   return jwt.sign(
     { userId },
     process.env.JWT_REFRESH_SECRET,
-    { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN }
+    { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || DEFAULT_REFRESH_TOKEN_EXPIRY }
   );
 };
 
