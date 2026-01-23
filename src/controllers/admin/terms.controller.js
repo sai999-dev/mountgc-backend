@@ -77,11 +77,11 @@ const createTerms = async (req, res) => {
     }
 
     // Validate service_type
-    const validServiceTypes = ['research_paper', 'visa_application'];
+    const validServiceTypes = ['research_paper', 'visa_application', 'counselling_session'];
     if (!validServiceTypes.includes(service_type)) {
       return res.status(400).json({
         success: false,
-        message: 'service_type must be either research_paper or visa_application'
+        message: 'service_type must be research_paper, visa_application, or counselling_session'
       });
     }
 

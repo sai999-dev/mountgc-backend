@@ -6,7 +6,7 @@ const getActiveTerms = async (req, res) => {
     const { service_type } = req.params;
 
     // Validate service_type
-    const validServiceTypes = ['research_paper', 'visa_application'];
+    const validServiceTypes = ['research_paper', 'visa_application', 'counselling_session'];
     if (!validServiceTypes.includes(service_type)) {
       return res.status(400).json({
         success: false,
@@ -107,7 +107,7 @@ const signAgreement = async (req, res) => {
     }
 
     // Validate service_type
-    const validServiceTypes = ['research_paper', 'visa_application'];
+    const validServiceTypes = ['research_paper', 'visa_application', 'counselling_session'];
     if (!validServiceTypes.includes(service_type)) {
       return res.status(400).json({
         success: false,
