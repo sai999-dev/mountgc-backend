@@ -245,40 +245,49 @@ model VisaApplicationPurchase {
 }
 
 model TermsAndConditions {
-  terms_id         Int       @id @default(autoincrement())
-  service_type     String    // 'research_paper', 'visa_application'
-  title            String    // e.g., "Research Paper Service Agreement"
-  content          String    @db.Text // The actual terms & conditions text
-  version          Int       @default(1) // Version number
-  is_active        Boolean   @default(true) // Only one active version per service_type
-  created_by       String?   // Admin who created it
-  created_at       DateTime  @default(now())
-  updated_at       DateTime  @updatedAt
+  terms_id                    Int       @id @default(autoincrement())
+  service_type                String    // 'research_paper', 'visa_application', 'counselling_session'
+  counselling_service_type_id Int?      // Optional: specific counselling service type
+  title                       String    // e.g., "Research Paper Service Agreement"
+  content                     String    @db.Text // The actual terms & conditions text
+  version                     Int       @default(1) // Version number
+  is_active                   Boolean   @default(true) // Only one active version per service_type
+  created_by                  String?   // Admin who created it
+  created_at                  DateTime  @default(now())
+  updated_at                  DateTime  @updatedAt
 
-  user_agreements  UserAgreement[]
+  user_agreements             UserAgreement[]
+  counselling_service_type    CounsellingServiceType? @relation(fields: [counselling_service_type_id], references: [service_type_id], onDelete: SetNull)
 
   @@index([service_type])
+  @@index([counselling_service_type_id])
   @@index([is_active])
   @@map("terms_and_conditions")
 }
 
 model UserAgreement {
-  agreement_id     Int       @id @default(autoincrement())
-  user_id          Int
-  terms_id         Int       // Which terms version they agreed to
-  service_type     String    // 'research_paper', 'visa_application'
-  signed_name      String    // User's typed signature
-  ip_address       String?   // User's IP when signing
-  user_agent       String?   @db.Text // Browser/device info
-  agreed_at        DateTime  @default(now())
+  agreement_id                Int       @id @default(autoincrement())
+  user_id                     Int
+  terms_id                    Int       // Which terms version they agreed to
+  service_type                String    // 'research_paper', 'visa_application', 'counselling_session'
+  counselling_service_type_id Int?      // Specific counselling service type (if applicable)
+  signed_name                 String    // User's typed signature
+  terms_title                 String?   // Snapshot of terms title at time of signing
+  terms_content               String?   @db.Text // Snapshot of terms content at time of signing
+  terms_version               Int?      // Snapshot of terms version at time of signing
+  ip_address                  String?   // User's IP when signing
+  user_agent                  String?   @db.Text // Browser/device info
+  agreed_at                   DateTime  @default(now())
 
-  user             User      @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
-  terms            TermsAndConditions @relation(fields: [terms_id], references: [terms_id])
+  user                        User      @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  terms                       TermsAndConditions @relation(fields: [terms_id], references: [terms_id])
+  counselling_service_type    CounsellingServiceType? @relation(fields: [counselling_service_type_id], references: [service_type_id], onDelete: SetNull)
 
-  @@unique([user_id, service_type]) // User can only have one agreement per service type
+  @@unique([user_id, service_type, counselling_service_type_id]) // User can only have one agreement per service type + counselling type
   @@index([user_id])
   @@index([service_type])
   @@index([terms_id])
+  @@index([counselling_service_type_id])
   @@map("user_agreements")
 }
 
@@ -312,6 +321,8 @@ model CounsellingServiceType {
 
   pricing_configs  CounsellingPricingConfig[]
   purchases        CounsellingPurchase[]
+  terms            TermsAndConditions[]
+  user_agreements  UserAgreement[]
 
   @@map("counselling_service_types")
 }

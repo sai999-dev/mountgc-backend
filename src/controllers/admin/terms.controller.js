@@ -3,14 +3,25 @@ const prisma = require('../../config/prisma');
 // Get all terms for a service type
 const getAllTerms = async (req, res) => {
   try {
-    const { service_type } = req.query;
+    const { service_type, counselling_service_type_id } = req.query;
 
-    const where = service_type ? { service_type } : {};
+    const where = {};
+    if (service_type) where.service_type = service_type;
+    if (counselling_service_type_id) where.counselling_service_type_id = parseInt(counselling_service_type_id);
 
     const terms = await prisma.termsAndConditions.findMany({
       where,
+      include: {
+        counselling_service_type: {
+          select: {
+            service_type_id: true,
+            name: true
+          }
+        }
+      },
       orderBy: [
         { service_type: 'asc' },
+        { counselling_service_type_id: 'asc' },
         { version: 'desc' }
       ]
     });
@@ -65,7 +76,7 @@ const getActiveTerms = async (req, res) => {
 // Create new terms
 const createTerms = async (req, res) => {
   try {
-    const { service_type, title, content } = req.body;
+    const { service_type, counselling_service_type_id, title, content } = req.body;
     const adminEmail = req.user.email;
 
     // Validation
@@ -85,17 +96,46 @@ const createTerms = async (req, res) => {
       });
     }
 
+    // For counselling_session, validate counselling_service_type_id
+    let parsedCounsellingServiceTypeId = null;
+    if (service_type === 'counselling_session') {
+      if (!counselling_service_type_id) {
+        return res.status(400).json({
+          success: false,
+          message: 'counselling_service_type_id is required for counselling_session terms'
+        });
+      }
+      parsedCounsellingServiceTypeId = parseInt(counselling_service_type_id);
+
+      // Verify the counselling service type exists
+      const serviceType = await prisma.counsellingServiceType.findUnique({
+        where: { service_type_id: parsedCounsellingServiceTypeId }
+      });
+      if (!serviceType) {
+        return res.status(404).json({
+          success: false,
+          message: 'Counselling service type not found'
+        });
+      }
+    }
+
+    // Build where clause for version lookup
+    const whereClause = { service_type };
+    if (parsedCounsellingServiceTypeId) {
+      whereClause.counselling_service_type_id = parsedCounsellingServiceTypeId;
+    }
+
     // Get the next version number
     const latestTerms = await prisma.termsAndConditions.findFirst({
-      where: { service_type },
+      where: whereClause,
       orderBy: { version: 'desc' }
     });
 
     const nextVersion = latestTerms ? latestTerms.version + 1 : 1;
 
-    // Deactivate all previous versions
+    // Deactivate all previous versions for this service type (and counselling service type if applicable)
     await prisma.termsAndConditions.updateMany({
-      where: { service_type },
+      where: whereClause,
       data: { is_active: false }
     });
 
@@ -103,11 +143,20 @@ const createTerms = async (req, res) => {
     const newTerms = await prisma.termsAndConditions.create({
       data: {
         service_type,
+        counselling_service_type_id: parsedCounsellingServiceTypeId,
         title,
         content,
         version: nextVersion,
         is_active: true,
         created_by: adminEmail
+      },
+      include: {
+        counselling_service_type: {
+          select: {
+            service_type_id: true,
+            name: true
+          }
+        }
       }
     });
 
@@ -145,9 +194,15 @@ const updateTerms = async (req, res) => {
       });
     }
 
-    // Deactivate all versions of this service type
+    // Build where clause for deactivation
+    const whereClause = { service_type: existingTerms.service_type };
+    if (existingTerms.counselling_service_type_id) {
+      whereClause.counselling_service_type_id = existingTerms.counselling_service_type_id;
+    }
+
+    // Deactivate all versions of this service type (and counselling service type if applicable)
     await prisma.termsAndConditions.updateMany({
-      where: { service_type: existingTerms.service_type },
+      where: whereClause,
       data: { is_active: false }
     });
 
@@ -155,11 +210,20 @@ const updateTerms = async (req, res) => {
     const newTerms = await prisma.termsAndConditions.create({
       data: {
         service_type: existingTerms.service_type,
+        counselling_service_type_id: existingTerms.counselling_service_type_id,
         title: title || existingTerms.title,
         content: content || existingTerms.content,
         version: existingTerms.version + 1,
         is_active: true,
         created_by: adminEmail
+      },
+      include: {
+        counselling_service_type: {
+          select: {
+            service_type_id: true,
+            name: true
+          }
+        }
       }
     });
 
@@ -194,9 +258,15 @@ const activateTermsVersion = async (req, res) => {
       });
     }
 
-    // Deactivate all versions of this service type
+    // Build where clause for deactivation
+    const whereClause = { service_type: terms.service_type };
+    if (terms.counselling_service_type_id) {
+      whereClause.counselling_service_type_id = terms.counselling_service_type_id;
+    }
+
+    // Deactivate all versions of this service type (and counselling service type if applicable)
     await prisma.termsAndConditions.updateMany({
-      where: { service_type: terms.service_type },
+      where: whereClause,
       data: { is_active: false }
     });
 
