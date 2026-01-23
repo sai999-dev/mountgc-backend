@@ -197,6 +197,7 @@ const getAllPurchases = async (req, res) => {
         service_type: 'research_paper',
       },
       select: {
+        agreement_id: true,
         user_id: true,
         signed_name: true,
         agreed_at: true,
@@ -211,6 +212,7 @@ const getAllPurchases = async (req, res) => {
       return {
         ...purchase,
         has_agreement: !!agreement,
+        agreement_id: agreement?.agreement_id || null,
         agreement_signed_at: agreement?.agreed_at || null,
         agreement_signed_name: agreement?.signed_name || null,
       };

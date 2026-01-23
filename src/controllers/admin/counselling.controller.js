@@ -425,6 +425,7 @@ const getPurchases = async (req, res) => {
         service_type: 'counselling_session',
       },
       select: {
+        agreement_id: true,
         user_id: true,
         counselling_service_type_id: true,
         signed_name: true,
@@ -443,6 +444,7 @@ const getPurchases = async (req, res) => {
       return {
         ...purchase,
         has_agreement: !!agreement,
+        agreement_id: agreement?.agreement_id || null,
         agreement_signed_at: agreement?.agreed_at || null,
         agreement_signed_name: agreement?.signed_name || null,
       };

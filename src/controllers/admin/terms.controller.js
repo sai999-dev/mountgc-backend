@@ -1,4 +1,5 @@
 const prisma = require('../../config/prisma');
+const { generateAgreementPDF } = require('../../services/pdf-generator.service');
 
 // Get all terms for a service type
 const getAllTerms = async (req, res) => {
@@ -380,6 +381,141 @@ const getAgreementStats = async (req, res) => {
   }
 };
 
+// Get single agreement details with signature
+const getAgreementById = async (req, res) => {
+  try {
+    const { agreement_id } = req.params;
+
+    const agreement = await prisma.userAgreement.findUnique({
+      where: { agreement_id: parseInt(agreement_id) },
+      include: {
+        user: {
+          select: {
+            user_id: true,
+            username: true,
+            email: true
+          }
+        },
+        terms: {
+          select: {
+            terms_id: true,
+            title: true,
+            version: true,
+            service_type: true
+          }
+        },
+        counselling_service_type: {
+          select: {
+            service_type_id: true,
+            name: true
+          }
+        }
+      }
+    });
+
+    if (!agreement) {
+      return res.status(404).json({
+        success: false,
+        message: 'Agreement not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: agreement
+    });
+  } catch (error) {
+    console.error('Get agreement by ID error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch agreement',
+      error: error.message
+    });
+  }
+};
+
+// Download agreement PDF
+const downloadAgreementPDF = async (req, res) => {
+  try {
+    const { agreement_id } = req.params;
+
+    const agreement = await prisma.userAgreement.findUnique({
+      where: { agreement_id: parseInt(agreement_id) },
+      include: {
+        user: {
+          select: {
+            username: true,
+            email: true
+          }
+        },
+        counselling_service_type: {
+          select: {
+            name: true
+          }
+        }
+      }
+    });
+
+    if (!agreement) {
+      return res.status(404).json({
+        success: false,
+        message: 'Agreement not found'
+      });
+    }
+
+    // If PDF already exists, return it
+    if (agreement.agreement_pdf) {
+      const pdfBuffer = Buffer.from(agreement.agreement_pdf, 'base64');
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="agreement-${agreement_id}.pdf"`);
+      return res.send(pdfBuffer);
+    }
+
+    // Generate PDF if not exists
+    let serviceName = '';
+    if (agreement.service_type === 'counselling_session' && agreement.counselling_service_type) {
+      serviceName = agreement.counselling_service_type.name;
+    } else if (agreement.service_type === 'research_paper') {
+      serviceName = 'Research Paper Publication';
+    } else if (agreement.service_type === 'visa_application') {
+      serviceName = 'Visa Application Assistance';
+    }
+
+    const pdfBase64 = await generateAgreementPDF({
+      agreementId: agreement.agreement_id,
+      userName: agreement.user.username,
+      userEmail: agreement.user.email,
+      signedName: agreement.signed_name,
+      signatureImage: agreement.signature_image,
+      termsTitle: agreement.terms_title,
+      termsContent: agreement.terms_content,
+      termsVersion: agreement.terms_version,
+      serviceType: agreement.service_type,
+      serviceName,
+      agreedAt: agreement.agreed_at,
+      ipAddress: agreement.ip_address,
+    });
+
+    // Save PDF to database for future use
+    await prisma.userAgreement.update({
+      where: { agreement_id: parseInt(agreement_id) },
+      data: { agreement_pdf: pdfBase64 }
+    });
+
+    const pdfBuffer = Buffer.from(pdfBase64, 'base64');
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="agreement-${agreement_id}.pdf"`);
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error('Download agreement PDF error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to download agreement PDF',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   getAllTerms,
   getActiveTerms,
@@ -387,5 +523,7 @@ module.exports = {
   updateTerms,
   activateTermsVersion,
   getAllAgreements,
-  getAgreementStats
+  getAgreementStats,
+  getAgreementById,
+  downloadAgreementPDF
 };

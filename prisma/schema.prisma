@@ -272,6 +272,8 @@ model UserAgreement {
   service_type                String    // 'research_paper', 'visa_application', 'counselling_session'
   counselling_service_type_id Int?      // Specific counselling service type (if applicable)
   signed_name                 String    // User's typed signature
+  signature_image             String?   @db.Text // Base64 encoded drawn signature image
+  agreement_pdf               String?   @db.Text // Base64 encoded PDF of signed agreement
   terms_title                 String?   // Snapshot of terms title at time of signing
   terms_content               String?   @db.Text // Snapshot of terms content at time of signing
   terms_version               Int?      // Snapshot of terms version at time of signing

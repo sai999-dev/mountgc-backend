@@ -7,7 +7,9 @@ const {
   updateTerms,
   activateTermsVersion,
   getAllAgreements,
-  getAgreementStats
+  getAgreementStats,
+  getAgreementById,
+  downloadAgreementPDF
 } = require('../../controllers/admin/terms.controller');
 
 // No need to apply authentication here - already applied in admin/index.js
@@ -22,5 +24,7 @@ router.patch('/terms/:terms_id/activate', activateTermsVersion);
 // User agreements
 router.get('/agreements', getAllAgreements);
 router.get('/agreements/stats', getAgreementStats);
+router.get('/agreements/:agreement_id', getAgreementById);
+router.get('/agreements/:agreement_id/pdf', downloadAgreementPDF);
 
 module.exports = router;

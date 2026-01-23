@@ -1,4 +1,5 @@
 const prisma = require('../../config/prisma');
+const { generateAgreementPDF } = require('../../services/pdf-generator.service');
 
 // Get active terms for a service (public/student access)
 const getActiveTerms = async (req, res) => {
@@ -130,7 +131,7 @@ const checkAgreement = async (req, res) => {
 // Sign agreement (student accepts terms)
 const signAgreement = async (req, res) => {
   try {
-    const { service_type, signed_name, terms_id, counselling_service_type_id } = req.body;
+    const { service_type, signed_name, signature_image, terms_id, counselling_service_type_id } = req.body;
     const userId = req.user.userId;
 
     // Validation
@@ -138,6 +139,14 @@ const signAgreement = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'service_type, signed_name, and terms_id are required'
+      });
+    }
+
+    // Signature image is now required
+    if (!signature_image) {
+      return res.status(400).json({
+        success: false,
+        message: 'signature_image (drawn signature) is required'
       });
     }
 
@@ -164,7 +173,12 @@ const signAgreement = async (req, res) => {
 
     // Verify terms exist and are active
     const terms = await prisma.termsAndConditions.findUnique({
-      where: { terms_id: parseInt(terms_id) }
+      where: { terms_id: parseInt(terms_id) },
+      include: {
+        counselling_service_type: {
+          select: { name: true }
+        }
+      }
     });
 
     if (!terms) {
@@ -196,9 +210,16 @@ const signAgreement = async (req, res) => {
       });
     }
 
+    // Get user details for PDF
+    const user = await prisma.user.findUnique({
+      where: { user_id: userId },
+      select: { username: true, email: true }
+    });
+
     // Get IP address and user agent
     const ip_address = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'];
     const user_agent = req.headers['user-agent'];
+    const agreedAt = new Date();
 
     // Check if agreement already exists
     const existingAgreement = await prisma.userAgreement.findFirst({
@@ -209,6 +230,16 @@ const signAgreement = async (req, res) => {
       }
     });
 
+    // Determine service name for PDF
+    let serviceName = '';
+    if (service_type === 'counselling_session' && terms.counselling_service_type) {
+      serviceName = terms.counselling_service_type.name;
+    } else if (service_type === 'research_paper') {
+      serviceName = 'Research Paper Publication';
+    } else if (service_type === 'visa_application') {
+      serviceName = 'Visa Application Assistance';
+    }
+
     let agreement;
     if (existingAgreement) {
       // Update existing agreement
@@ -217,12 +248,13 @@ const signAgreement = async (req, res) => {
         data: {
           terms_id: parseInt(terms_id),
           signed_name,
+          signature_image,
           terms_title: terms.title,
           terms_content: terms.content,
           terms_version: terms.version,
           ip_address,
           user_agent,
-          agreed_at: new Date()
+          agreed_at: agreedAt
         }
       });
     } else {
@@ -234,19 +266,52 @@ const signAgreement = async (req, res) => {
           service_type,
           counselling_service_type_id: parsedCounsellingServiceTypeId,
           signed_name,
+          signature_image,
           terms_title: terms.title,
           terms_content: terms.content,
           terms_version: terms.version,
           ip_address,
-          user_agent
+          user_agent,
+          agreed_at: agreedAt
         }
       });
     }
 
+    // Generate PDF in background (don't block response)
+    generateAgreementPDF({
+      agreementId: agreement.agreement_id,
+      userName: user.username,
+      userEmail: user.email,
+      signedName: signed_name,
+      signatureImage: signature_image,
+      termsTitle: terms.title,
+      termsContent: terms.content,
+      termsVersion: terms.version,
+      serviceType: service_type,
+      serviceName,
+      agreedAt,
+      ipAddress: ip_address,
+    }).then(async (pdfBase64) => {
+      // Update agreement with generated PDF
+      await prisma.userAgreement.update({
+        where: { agreement_id: agreement.agreement_id },
+        data: { agreement_pdf: pdfBase64 }
+      });
+      console.log(`PDF generated for agreement #${agreement.agreement_id}`);
+    }).catch((pdfError) => {
+      console.error('PDF generation error:', pdfError);
+      // Don't fail the request, PDF can be regenerated later
+    });
+
     res.status(200).json({
       success: true,
       message: 'Agreement signed successfully',
-      data: agreement
+      data: {
+        agreement_id: agreement.agreement_id,
+        signed_name: agreement.signed_name,
+        agreed_at: agreement.agreed_at,
+        service_type: agreement.service_type
+      }
     });
   } catch (error) {
     console.error('Sign agreement error:', error);
