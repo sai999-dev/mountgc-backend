@@ -130,6 +130,23 @@ const createPurchase = async (req, res) => {
       });
     }
 
+    // IMPORTANT: Verify user has signed the terms and conditions with a valid signature
+    const agreement = await prisma.userAgreement.findFirst({
+      where: {
+        user_id: userId,
+        service_type: 'counselling_session',
+        counselling_service_type_id: parseInt(service_type_id),
+        signature_image: { not: null }, // Must have drawn signature
+      },
+    });
+
+    if (!agreement) {
+      return res.status(400).json({
+        success: false,
+        message: "You must accept and sign the Terms & Conditions before purchasing. Please sign the agreement first.",
+      });
+    }
+
     // Create the purchase
     const purchase = await prisma.counsellingPurchase.create({
       data: {

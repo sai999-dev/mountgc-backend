@@ -80,10 +80,11 @@ const checkAgreement = async (req, res) => {
     const { counselling_service_type_id } = req.query;
     const userId = req.user.userId;
 
-    // Build where clause
+    // Build where clause - IMPORTANT: Only consider agreements WITH a drawn signature as valid
     const whereClause = {
       user_id: userId,
-      service_type
+      service_type,
+      signature_image: { not: null }, // Must have drawn signature to be considered valid
     };
 
     // For counselling_session, include counselling_service_type_id

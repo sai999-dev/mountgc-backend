@@ -7,6 +7,7 @@ const {
   sendPurchaseConfirmationEmail,
   sendAdminNotificationEmail,
 } = require('../../services/student/visa-application-email.service');
+const prisma = require('../../config/prisma');
 
 /**
  * Get pricing configurations
@@ -142,6 +143,22 @@ const createPurchase = async (req, res) => {
     const actualAmount = config.actual_price;
     const discountedAmount = config.discounted_price;
     const discountAmount = actualAmount - discountedAmount;
+
+    // IMPORTANT: Verify user has signed the terms and conditions with a valid signature
+    const agreement = await prisma.userAgreement.findFirst({
+      where: {
+        user_id: userId,
+        service_type: 'visa_application',
+        signature_image: { not: null }, // Must have drawn signature
+      },
+    });
+
+    if (!agreement) {
+      return res.status(400).json({
+        success: false,
+        message: 'You must accept and sign the Terms & Conditions before purchasing. Please sign the agreement first.',
+      });
+    }
 
     // Create purchase (without payment for now)
     const purchase = await visaApplicationPurchaseRepository.create({

@@ -1,7 +1,8 @@
-const { 
+const {
   researchPaperConfigRepository,
-  researchPaperPurchaseRepository 
+  researchPaperPurchaseRepository
 } = require('../../dal/repositories/research-paper.repository');
+const prisma = require('../../config/prisma');
 
 // Get all available pricing configurations
 const getPricingConfigs = async (req, res) => {
@@ -107,6 +108,22 @@ const createPurchase = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Invalid pricing configuration'
+      });
+    }
+
+    // IMPORTANT: Verify user has signed the terms and conditions with a valid signature
+    const agreement = await prisma.userAgreement.findFirst({
+      where: {
+        user_id: userId,
+        service_type: 'research_paper',
+        signature_image: { not: null }, // Must have drawn signature
+      },
+    });
+
+    if (!agreement) {
+      return res.status(400).json({
+        success: false,
+        message: 'You must accept and sign the Terms & Conditions before purchasing. Please sign the agreement first.',
       });
     }
 
