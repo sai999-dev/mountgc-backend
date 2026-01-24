@@ -209,7 +209,7 @@ const resendVerificationEmail = async (req, res) => {
   }
 };
 
-// Login controller - Single device only, no force login
+// Login controller - Single device only with same-device recognition
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -222,9 +222,9 @@ const login = async (req, res) => {
     });
 
     if (!user) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         success: false,
-        message: 'Invalid email or password' 
+        message: 'Invalid email or password'
       });
     }
 
@@ -239,9 +239,9 @@ const login = async (req, res) => {
 
     // Check if account is active
     if (!user.is_active) {
-      return res.status(403).json({ 
+      return res.status(403).json({
         success: false,
-        message: 'Account is deactivated' 
+        message: 'Account is deactivated'
       });
     }
 
@@ -249,33 +249,69 @@ const login = async (req, res) => {
     const isPasswordValid = await comparePassword(password, user.password);
 
     if (!isPasswordValid) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         success: false,
-        message: 'Invalid email or password' 
+        message: 'Invalid email or password'
       });
     }
 
-    // Get device information
+    // Get device information for current request
     const deviceInfo = getDeviceInfo(req);
 
-    // Check for existing active session - STRICT: No login allowed if session exists
+    // Check for existing active session
     const existingSession = await deviceSessionRepository.findActiveByUserId(user.user_id);
 
     if (existingSession) {
-      console.log(`⚠️ Login denied - Active session exists for user ${user.user_id}`);
-      return res.status(409).json({
-        success: false,
-        message: 'Device limit exceeded. You are already logged in from another device. Please logout from that device first.',
-        code: 'ACTIVE_SESSION_EXISTS',
-        data: {
-          deviceName: existingSession.device_name,
-          ipAddress: existingSession.ip_address,
-          loginAt: existingSession.login_at
-        }
-      });
+      // Session timeout threshold: 24 hours of inactivity = stale session
+      const SESSION_TIMEOUT_HOURS = 24;
+      const lastActivity = existingSession.last_activity_at || existingSession.login_at;
+      const hoursSinceActivity = (Date.now() - new Date(lastActivity).getTime()) / (1000 * 60 * 60);
+      const isSessionStale = hoursSinceActivity > SESSION_TIMEOUT_HOURS;
+
+      // Check if it's the same device (by comparing device_id or user_agent)
+      // Primary check: exact device_id match (same browser + same IP)
+      // Fallback check: same user_agent (same browser, but IP may have changed e.g., WiFi to mobile)
+      const exactDeviceMatch = existingSession.device_id === deviceInfo.deviceId;
+      const sameUserAgent = existingSession.user_agent === deviceInfo.userAgent;
+      const isSameDevice = exactDeviceMatch || sameUserAgent;
+
+      console.log(`📱 Existing session check for user ${user.user_id}:`);
+      console.log(`   - Exact device match: ${exactDeviceMatch}`);
+      console.log(`   - Same user agent: ${sameUserAgent}`);
+      console.log(`   - Same device (combined): ${isSameDevice}`);
+      console.log(`   - Hours since activity: ${hoursSinceActivity.toFixed(1)}`);
+      console.log(`   - Session stale: ${isSessionStale}`);
+
+      if (isSameDevice) {
+        // SAME DEVICE: User is logging in from the same device/browser
+        // This happens when user closes browser without logout and reopens later
+        // Allow login by replacing the old session
+        console.log(`✅ Same device detected - Replacing old session for user ${user.user_id}`);
+        await deviceSessionRepository.invalidateUserSessions(user.user_id);
+      } else if (isSessionStale) {
+        // DIFFERENT DEVICE but session is STALE (inactive for >24 hours)
+        // The old session is likely abandoned, allow new login
+        console.log(`✅ Stale session detected (${hoursSinceActivity.toFixed(1)}h inactive) - Allowing new login for user ${user.user_id}`);
+        await deviceSessionRepository.invalidateUserSessions(user.user_id);
+      } else {
+        // DIFFERENT DEVICE and session is still ACTIVE
+        // Block login - user is genuinely logged in elsewhere
+        console.log(`⚠️ Login denied - Active session on different device for user ${user.user_id}`);
+        return res.status(409).json({
+          success: false,
+          message: 'You are already logged in from another device. Please logout from that device first, or wait for the session to expire.',
+          code: 'ACTIVE_SESSION_EXISTS',
+          data: {
+            deviceName: existingSession.device_name,
+            ipAddress: existingSession.ip_address,
+            loginAt: existingSession.login_at,
+            lastActivity: lastActivity
+          }
+        });
+      }
     }
 
-    // No active session exists - Allow login
+    // Proceed with login (either no previous session or old session was invalidated)
     // Generate tokens
     const accessToken = generateAccessToken(user.user_id, user.email, user.user_role);
     const refreshToken = generateRefreshToken(user.user_id);
